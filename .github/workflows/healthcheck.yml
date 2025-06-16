@@ -1,29 +1,29 @@
-name: External Service Healthcheck
+name: Healthcheck Monitor
 on:
   schedule:
-    - cron: '*/1 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
   healthcheck:
     runs-on: ubuntu-latest
     steps:
-      - name: Check if the service is alive
-        id: check
+      - name: Check service
+        id: healthcheck
+        continue-on-error: true
         run: |
-          if curl -s -f "${{ secrets.HEALTHCHECK_ENDPOINT }}"; then
+          if curl -s -f "http://ваш-сервис/healthcheck"; then
             echo "✅ Сервис работает"
+            echo "status=ok" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=status::down"
+            echo "status=down" >> $GITHUB_OUTPUT
             exit 1
           fi
 
       - name: Send Telegram alert
-        if: steps.check.outputs.status == 'down'
+        if: steps.healthcheck.outputs.status == 'down'
         run: |
-          MESSAGE="🚨 Сервис **не отвечает**!%0A%0A• Время: $(date '+%Y-%m-%d %H:%M:%S')%0A• URL: ${{ secrets.HEALTHCHECK_ENDPOINT }}"
           curl -s -X POST \
-            "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d "text=$MESSAGE" \
-            -d "parse_mode=Markdown"
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_GROUP_CHAT_ID }}" \
+            -d "text=🚨 Сервис упал! Проверьте: http://ваш-сервис/healthcheck"
