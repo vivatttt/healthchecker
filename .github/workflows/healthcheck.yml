@@ -1,7 +1,7 @@
 name: Healthcheck Monitor
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/1 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -12,7 +12,7 @@ jobs:
         id: healthcheck
         continue-on-error: true
         run: |
-          if curl -s -f "http://ваш-сервис/healthcheck"; then
+          if curl -s -f "${{ secrets.HEALTHCHECK_ENDPOINT }}"; then
             echo "✅ Сервис работает"
             echo "status=ok" >> $GITHUB_OUTPUT
           else
@@ -26,4 +26,4 @@ jobs:
           curl -s -X POST \
             "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_GROUP_CHAT_ID }}" \
-            -d "text=🚨 Сервис упал! Проверьте: http://ваш-сервис/healthcheck"
+            -d "text=🚨 Сервис упал! Проверьте: curl /${{ secrets.HEALTHCHECK_ENDPOINT }}"
