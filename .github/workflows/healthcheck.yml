@@ -12,7 +12,7 @@ jobs:
         id: healthcheck
         continue-on-error: true
         run: |
-          if curl -s -f "${{ secrets.HEALTHCHECK_ENDPOINT }}"; then
+          if curl -s -f "${{ secrets.HEALTHCHECK_ENDPOINT }} --connect-timeout 3"; then
             echo "✅ Сервис работает"
             echo "status=ok" >> $GITHUB_OUTPUT
           else
