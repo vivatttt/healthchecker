@@ -1,0 +1,29 @@
+name: External Service Healthcheck
+on:
+  schedule:
+    - cron: '*/1 * * * *'
+  workflow_dispatch:
+
+jobs:
+  healthcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if the service is alive
+        id: check
+        run: |
+          if curl -s -f "${{ secrets.HEALTHCHECK_ENDPOINT }}"; then
+            echo "✅ Сервис работает"
+          else
+            echo "::set-output name=status::down"
+            exit 1
+          fi
+
+      - name: Send Telegram alert
+        if: steps.check.outputs.status == 'down'
+        run: |
+          MESSAGE="🚨 Сервис **не отвечает**!%0A%0A• Время: $(date '+%Y-%m-%d %H:%M:%S')%0A• URL: ${{ secrets.HEALTHCHECK_ENDPOINT }}"
+          curl -s -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "text=$MESSAGE" \
+            -d "parse_mode=Markdown"
